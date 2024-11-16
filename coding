@@ -1,0 +1,64 @@
+The examples below work even if you use our non-custom model. However, you won't be able to deploy it to Roboflow. 
+To do that, create a custom dataset as described below or fork (copy) one into your workspace from Universe.
+
+
+!mkdir -p {HOME}/datasets
+%cd {HOME}/datasets
+
+!pip install roboflow
+
+from roboflow import Roboflow
+rf = Roboflow(api_key="U583IaFvXMDIVIL5W7kk")
+project = rf.workspace("cocotext-to-yolov8").project("keyboard_detection-lwtel")
+version = project.version(1)
+dataset = version.download("yolov8")
+
+#Custom Training 
+
+%cd {HOME}
+!yolo task=detect mode=train model=yolov8s.pt data={dataset.location}/data.yaml epochs=10 imgsz=800 plots=True save=True
+
+%cd {HOME}
+Image(filename=f'{HOME}/runs/detect/train3/confusion_matrix.png', width=600)
+
+
+%cd {HOME}
+Image(filename=f'{HOME}/runs/detect/train3/results.png', width=600)
+
+
+%cd {HOME}
+Image(filename=f'{HOME}/runs/detect/train3/val_batch0_pred.jpg', width=600)
+
+#validate Custom model 
+
+%cd {HOME}
+!yolo task=detect mode=val model={HOME}/runs/detect/train3/weights/best.pt data={dataset.location}/data.yaml
+
+# Interfernce with custom model 
+
+%cd {HOME}
+!yolo task=detect mode=predict model={HOME}/runs/detect/train3/weights/best.pt conf=0.25 source={dataset.location}/test/images save=True
+
+
+
+import glob
+from IPython.display import Image, display
+
+# Define the base path where the folders are located
+base_path = '/content/runs/detect/'
+
+# List all directories that start with 'predict' in the base path
+subfolders = [os.path.join(base_path, d) for d in os.listdir(base_path)
+              if os.path.isdir(os.path.join(base_path, d)) and d.startswith('predict')]
+
+# Find the latest folder by modification time
+latest_folder = max(subfolders, key=os.path.getmtime)
+
+image_paths = glob.glob(f'{latest_folder}/*.jpg')[:3]
+
+# Display each image
+for image_path in image_paths:
+    display(Image(filename=image_path, width=600))
+    print("\n")
+
+
